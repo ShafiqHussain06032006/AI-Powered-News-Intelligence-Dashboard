@@ -1,6 +1,8 @@
-Q1. How to run
+# Answers
 
-Follow the commands in README.md. Example:
+## 1. How to run
+
+Install Python 3.10+, Node.js 18+, and Git.
 
 ```bash
 git clone https://github.com/ShafiqHussain06032006/AI-Powered-News-Intelligence-Dashboard.git
@@ -9,35 +11,52 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# fill keys
+```
+
+Add your keys in `backend/.env`:
+
+```env
+GNEWS_API_KEY=your_gnews_key
+GROQ_API_KEY=your_groq_key
+```
+
+Run the backend:
+
+```bash
 python manage.py migrate
 python manage.py runserver
-cd ../frontend
+```
+
+Run the frontend in a second terminal:
+
+```bash
+cd AI-Powered-News-Intelligence-Dashboard/frontend
 npm install
 npm run dev
 ```
 
-If you hit a NewsAPI rate limit, wait 60 seconds — free tier allows limited requests.
+Open `http://127.0.0.1:5173/`.
 
-Q2. Stack choice
+## 2. Stack choice
 
-- React: component reusability (cards, panels), hooks for async state.
-- Django + DRF: mature ecosystem for Python NLP tools (VADER, NLTK), quick to scaffold APIs.
-- Tailwind: rapid styling and consistent utility classes for responsive layouts.
+I chose React, Django, Django REST Framework, and Tailwind CSS because I have studied these technologies in my Web Engineering course and have practical experience with them. React makes the dashboard easier to split into reusable pieces like article cards, filters, summary panels, and saved articles. Django REST Framework is a good fit because it makes API endpoints fast to build, and Python works well with NLP libraries like VADER and NLTK. Tailwind helped me build a responsive UI quickly without writing a large custom CSS file.
 
-Worse choices would be plain HTML/JS + Flask (no component model), or Next.js + FastAPI (overkill for assessment scope).
+A worse choice for this task would have been plain HTML, CSS, and JavaScript only, because the dashboard has multiple interactive states and reusable UI sections. Another worse choice would have been using a very heavy full-stack framework for everything, because this project only needs a small API backend and a focused React frontend.
 
-Q3. One real edge case
+## 3. One real edge case
 
-In `backend/news/views.py` the `fetch_news` calls use `timeout=5` (search endpoint) to avoid hanging requests — without this, a slow NewsAPI call would block the Django request and the frontend would wait indefinitely (see the Timeout handling in `search_news`).
+One edge case is handling an upstream news API timeout. In `backend/news/views.py`, lines 48-52 wrap `fetch_news(api_params)` in a `try` block and return a `504` JSON response if `requests.exceptions.Timeout` happens. Without this handling, a slow or stuck GNews request could crash the endpoint or leave the frontend waiting with no clear error message.
 
-Q4. AI usage
+The request timeout itself is set in `backend/news/services.py`, line 60, where the GNews request uses `timeout=5`.
 
-- AI tool: Groq API (model `llama3-8b-8192`). Prompt used: "Summarize these news headlines in exactly 5 concise bullet points. Start each with •"
-- What it returned: raw text with bullet points (stored in `summary` field returned to frontend).
-- Note: I used VADER for sentiment instead of TextBlob because VADER is tuned for short news/social text and gives a compound score useful for thresholds.
+## 4. AI usage
 
-Q5. Honest gap
+- Codex / ChatGPT: I used it to debug run errors, update the project from NewsAPI-style config to GNews, improve the React UI, and write clearer documentation. It suggested code changes, tests to run, and wording for the README and answers.
+- Groq API: The app uses Groq to summarize returned article headlines into five concise bullet points. The prompt asks it to summarize headlines and start each bullet with `•`.
+- AI-generated UI suggestions: I used AI help to make the dashboard look less like a default scaffold and more like a human-built product dashboard, including better cards, spacing, empty states, and side panels.
 
-Trending keywords are extracted from only the top 20 headlines due to NewsAPI free-tier limits and latency concerns. With more time I would compute TF-IDF over a larger corpus and add a word-cloud visualization.
+One thing I changed about the AI output was the stack-choice answer. I specifically added that I chose this stack because I studied it in my Web Engineering course and already had experience with it. That makes the answer honest and personal instead of sounding generic.
 
+## 5. Honest gap
+
+The project is not good enough in automated test coverage. There are a few backend tests for API edge cases, but the frontend has no automated tests for search, filters, saving articles, summaries, or country compare. With another day, I would add React component tests and at least one end-to-end test that starts both servers, searches a topic, checks that articles render, saves an article, and verifies the summary flow.

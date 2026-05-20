@@ -3,10 +3,11 @@ from unittest.mock import patch, Mock
 import requests
 
 
-class NewsAPIEdgeTests(TestCase):
+class NewsProviderEdgeTests(TestCase):
     def setUp(self):
         self.client = Client()
 
+    @patch('news.services.GNEWS_API_KEY', 'test-key')
     @patch('news.services.requests.get')
     def test_search_timeout(self, mock_get):
         mock_get.side_effect = requests.exceptions.Timeout()
@@ -14,6 +15,7 @@ class NewsAPIEdgeTests(TestCase):
         self.assertEqual(resp.status_code, 504)
         self.assertIn('timeout', resp.json().get('error'))
 
+    @patch('news.services.GNEWS_API_KEY', 'test-key')
     @patch('news.services.requests.get')
     def test_search_rate_limit(self, mock_get):
         mock_resp = Mock()

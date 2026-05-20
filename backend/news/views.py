@@ -27,13 +27,13 @@ def ping(request):
 
 @api_view(['GET'])
 def search_news(request):
-    """Search news endpoint. Validates input and proxies to NewsAPI."""
+    """Search news endpoint. Validates input and proxies to GNews."""
     serializer = SearchSerializer(data=request.query_params)
     if not serializer.is_valid():
         return JsonResponse({"error": "bad_input", "message": serializer.errors}, status=400)
 
     params = serializer.validated_data
-    # Build params for NewsAPI
+    # Build params for the upstream news provider.
     api_params = {}
     api_params['q'] = params.get('q')
     if params.get('country'):
@@ -48,11 +48,11 @@ def search_news(request):
     try:
         resp = fetch_news(api_params)
     except requests.exceptions.Timeout:
-        # EDGE CASE: handles NewsAPI request timeout
+        # EDGE CASE: handles upstream request timeout
         return JsonResponse({"error": "timeout", "message": "Request timed out. Please try again."}, status=504)
 
     # Handle upstream errors
-    # EDGE CASE: handle NewsAPI structured error codes
+    # EDGE CASE: handle upstream structured error codes
     newsapi_code = getattr(resp, '_newsapi_code', None)
     if newsapi_code == 'apiKeyInvalid' or newsapi_code == 'apiKeyMissing':
         return JsonResponse({"error": "apiKeyInvalid", "message": "Invalid API key. Check your .env file."}, status=401)
@@ -60,7 +60,7 @@ def search_news(request):
         return JsonResponse({"error": "parameterInvalid", "message": "One or more parameters are invalid."}, status=400)
 
     if resp.status_code == 429:
-        # EDGE CASE: handles NewsAPI 429 rate limit response
+        # EDGE CASE: handles upstream 429 rate limit response
         retry_after = resp.headers.get('Retry-After') or 60
         return JsonResponse({"error": "rate_limit", "message": "Too many requests. Try again in 60 seconds.", "retry_after": int(retry_after)}, status=429)
 

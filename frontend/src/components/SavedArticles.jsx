@@ -13,10 +13,10 @@ export default function SavedArticles(){
   },[])
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded shadow">
-      <h3 className="font-semibold">Saved Articles</h3>
-      {saved.length === 0 ? <div className="text-sm text-gray-500">No saved articles</div> : (
-        <ul>{saved.map((s,i)=>(<li key={i}>{s.title}</li>))}</ul>
+    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/90">
+      <h3 className="font-semibold text-slate-950 dark:text-white">Saved Articles</h3>
+      {saved.length === 0 ? <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">No saved articles yet</div> : (
+        <ul className="mt-3 space-y-2 text-sm">{saved.slice(0,5).map((s,i)=>(<li key={i} className="line-clamp-2 text-slate-700 dark:text-slate-300">{s.title}</li>))}</ul>
       )}
     </div>
   )
