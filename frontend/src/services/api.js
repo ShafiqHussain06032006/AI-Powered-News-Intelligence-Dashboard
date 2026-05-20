@@ -5,10 +5,14 @@ const api = axios.create({
   timeout: 10000,
 })
 
+// Response interceptor to map backend structured errors
 api.interceptors.response.use(
   res => res,
   err => {
-    // central error handling — frontend will show proper toasts
+    if(err.response && err.response.data){
+      const data = err.response.data
+      return Promise.reject(new Error(data.message || JSON.stringify(data)))
+    }
     return Promise.reject(err)
   }
 )

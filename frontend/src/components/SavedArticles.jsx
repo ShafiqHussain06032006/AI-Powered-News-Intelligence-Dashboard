@@ -6,6 +6,12 @@ export default function SavedArticles(){
     try{ const raw = localStorage.getItem('saved_articles') || '[]'; setSaved(JSON.parse(raw)) }catch(e){}
   },[])
 
+  useEffect(()=>{
+    const handler = ()=>{ try{ const raw = localStorage.getItem('saved_articles') || '[]'; setSaved(JSON.parse(raw)) }catch(e){} }
+    window.addEventListener('saved-article', handler)
+    return ()=> window.removeEventListener('saved-article', handler)
+  },[])
+
   return (
     <div className="p-4 bg-white dark:bg-gray-800 rounded shadow">
       <h3 className="font-semibold">Saved Articles</h3>
