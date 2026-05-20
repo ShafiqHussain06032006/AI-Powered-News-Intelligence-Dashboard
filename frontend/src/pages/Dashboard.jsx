@@ -17,12 +17,14 @@ export default function Dashboard(){
   const doSearch = async (params)=>{
     if(!params.q){ add('Please enter a search term', 'error'); return }
     setLoading(true)
+    const longTimer = setTimeout(()=> add('Taking longer than usual...', 'info', 3000), 3000)
     try{
       const resp = await api.get('search/', { params })
       setArticles(resp.data.articles || [])
     }catch(err){
       add(err.response?.data?.message || 'Search failed', 'error')
     }finally{ setLoading(false) }
+    clearTimeout(longTimer)
   }
 
   return (

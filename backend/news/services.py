@@ -19,5 +19,14 @@ def fetch_news(params: dict):
         # EDGE CASE: handles request timeout
         raise
 
-    # Map HTTP and API errors up to caller
+    # If NewsAPI returns a JSON with an error code, bubble it up
+    try:
+        data = resp.json()
+        code = data.get('code')
+        if code:
+            # pass the structured error to caller
+            resp._newsapi_code = code
+    except ValueError:
+        pass
+
     return resp

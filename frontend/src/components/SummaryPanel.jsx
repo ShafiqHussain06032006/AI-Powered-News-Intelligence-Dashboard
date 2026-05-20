@@ -10,11 +10,12 @@ export default function SummaryPanel({articles=[]}){
   const doSummarize = async ()=>{
     if(!articles || articles.length===0){ add('No articles to summarize','error'); return }
     setLoading(true)
+    const longTimer = setTimeout(()=> add('Summarization is taking longer than usual...', 'info', 3000), 3000)
     try{
       const resp = await api.post('summarize/', { articles })
       setSummary(resp.data.summary)
-    }catch(err){ add('Summarization failed','error') }
-    finally{ setLoading(false) }
+    }catch(err){ add(err.message || 'Summarization failed','error') }
+    finally{ setLoading(false); clearTimeout(longTimer) }
   }
 
   return (

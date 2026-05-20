@@ -52,6 +52,13 @@ def search_news(request):
         return JsonResponse({"error": "timeout", "message": "Request timed out. Please try again."}, status=504)
 
     # Handle upstream errors
+    # EDGE CASE: handle NewsAPI structured error codes
+    newsapi_code = getattr(resp, '_newsapi_code', None)
+    if newsapi_code == 'apiKeyInvalid' or newsapi_code == 'apiKeyMissing':
+        return JsonResponse({"error": "apiKeyInvalid", "message": "Invalid API key. Check your .env file."}, status=401)
+    if newsapi_code == 'parameterInvalid':
+        return JsonResponse({"error": "parameterInvalid", "message": "One or more parameters are invalid."}, status=400)
+
     if resp.status_code == 429:
         # EDGE CASE: handles NewsAPI 429 rate limit response
         retry_after = resp.headers.get('Retry-After') or 60
