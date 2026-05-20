@@ -7,6 +7,17 @@ import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 analyzer = SentimentIntensityAnalyzer()
+from .groq_service import summarize_with_groq
+import nltk
+from collections import Counter
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+
+from nltk.corpus import stopwords
+STOPWORDS = set(stopwords.words('english'))
 
 
 def ping(request):
@@ -78,3 +89,78 @@ def search_news(request):
         })
 
     return JsonResponse({'articles': results, 'totalResults': data.get('totalResults', 0)})
+
+
+@api_view(['POST'])
+def summarize_news(request):
+    body = request.data
+    articles = body.get('articles')
+    if not articles:
+        return JsonResponse({"error": "bad_input", "message": "Articles list required."}, status=400)
+
+    # Combine headlines for summarization
+    text = '\n'.join([a.get('title', '') for a in articles])
+    try:
+        summary = summarize_with_groq(text)
+    except requests.exceptions.Timeout:
+        return JsonResponse({"error": "timeout", "message": "Request timed out. Please try again."}, status=504)
+    except Exception:
+        return JsonResponse({"error": "upstream_error", "message": "AI summarization service unavailable."}, status=503)
+
+    return JsonResponse({'summary': summary})
+
+
+@api_view(['GET'])
+def trending_keywords(request):
+    # Fetch top 20 latest headlines (no query)
+    try:
+        resp = fetch_news({'pageSize': 20})
+    except requests.exceptions.Timeout:
+        return JsonResponse({"error": "timeout", "message": "Request timed out. Please try again."}, status=504)
+
+    if resp.status_code != 200:
+        return JsonResponse({"error": "upstream_error", "message": "News service unavailable."}, status=503)
+
+    data = resp.json()
+    articles = data.get('articles', [])
+    words = []
+    for a in articles:
+        for chunk in [a.get('title',''), a.get('description','')]:
+            for w in (chunk or '').split():
+                w_clean = ''.join(ch for ch in w if ch.isalpha())
+                w_lower = w_clean.lower()
+                if len(w_lower) > 2 and w_lower not in STOPWORDS:
+                    words.append(w_lower)
+
+    counts = Counter(words)
+    top = counts.most_common(8)
+    result = [{'word': w.title(), 'count': c} for w, c in top]
+    return JsonResponse({'keywords': result})
+
+
+@api_view(['GET'])
+def compare_news(request):
+    q = request.query_params.get('q')
+    countries = request.query_params.get('countries')
+    if not q:
+        return JsonResponse({"error": "bad_input", "message": "Search query cannot be empty."}, status=400)
+    if not countries:
+        return JsonResponse({"error": "bad_input", "message": "countries param required."}, status=400)
+
+    country_list = [c.strip() for c in countries.split(',') if c.strip()]
+    output = {}
+    for c in country_list:
+        try:
+            resp = fetch_news({'q': q, 'country': c, 'pageSize': 5})
+        except requests.exceptions.Timeout:
+            output[c] = {'error': 'timeout'}
+            continue
+
+        if resp.status_code != 200:
+            output[c] = {'error': 'upstream'}
+            continue
+
+        data = resp.json()
+        output[c] = data.get('articles', [])
+
+    return JsonResponse({'compare': output})
