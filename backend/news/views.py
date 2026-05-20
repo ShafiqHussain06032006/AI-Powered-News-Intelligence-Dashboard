@@ -4,6 +4,9 @@ from rest_framework import status
 from .serializers import SearchSerializer
 from .services import fetch_news
 import requests
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+analyzer = SentimentIntensityAnalyzer()
 
 
 def ping(request):
@@ -54,6 +57,16 @@ def search_news(request):
     # Return a compact list of articles
     results = []
     for a in articles:
+        text = ' '.join(filter(None, [a.get('title'), a.get('description')]))
+        vs = analyzer.polarity_scores(text)
+        compound = vs.get('compound', 0.0)
+        if compound >= 0.05:
+            label = 'positive'
+        elif compound <= -0.05:
+            label = 'negative'
+        else:
+            label = 'neutral'
+
         results.append({
             'title': a.get('title'),
             'description': a.get('description'),
@@ -61,6 +74,7 @@ def search_news(request):
             'urlToImage': a.get('urlToImage'),
             'source': a.get('source', {}).get('name'),
             'publishedAt': a.get('publishedAt'),
+            'sentiment': {'label': label, 'score': round(compound, 3)},
         })
 
     return JsonResponse({'articles': results, 'totalResults': data.get('totalResults', 0)})
