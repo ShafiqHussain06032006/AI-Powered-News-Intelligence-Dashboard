@@ -1,6 +1,7 @@
 Django>=4.2
 djangorestframework>=3.14
-python-decouple>=4.8
+# use a compatible python-decouple version available on PyPI for macOS
+python-decouple>=3.8
 django-cors-headers>=3.14
 requests>=2.31
 vaderSentiment>=3.3
