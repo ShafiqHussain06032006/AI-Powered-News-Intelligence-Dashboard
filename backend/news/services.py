@@ -55,8 +55,30 @@ def fetch_news(params: dict):
         data = resp.json()
         code = data.get('code')
         if code:
-            # pass the structured error to caller
+            # attach structured error code
             resp._newsapi_code = code
+
+        # If API key is invalid (upstream), return demo data so frontend remains usable
+        if resp.status_code == 401 or code in ('apiKeyInvalid', 'apiKeyMissing'):
+            class MockResp:
+                status_code = 200
+                def json(self):
+                    return {
+                        'status': 'ok',
+                        'totalResults': 1,
+                        'articles': [
+                            {
+                                'source': {'name': 'Demo Source (fallback)'},
+                                'author': 'Demo',
+                                'title': f"Demo article (fallback) about {params.get('q','news')}",
+                                'description': 'Demo fallback because NewsAPI returned an auth error.',
+                                'url': 'https://example.com/demo-fallback',
+                                'urlToImage': '',
+                                'publishedAt': '2026-05-21T12:00:00Z',
+                            }
+                        ]
+                    }
+            return MockResp()
     except ValueError:
         pass
 
